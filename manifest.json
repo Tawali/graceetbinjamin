@@ -1,0 +1,10 @@
+{
+  "name": "Grace & Benjamin — Mariage",
+  "short_name": "Grace & Benjamin",
+  "description": "Invitation de mariage de Grace et Benjamin",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#2e1706",
+  "theme_color": "#2e1706",
+  "icons": []
+}

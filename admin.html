@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Grace &amp; Benjamin</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#2e1706; --bg-soft:#3d1f08; --olive:#4f5a29; --olive-soft:#6b7a3a;
+    --terracotta:#B5502F; --ivoire:#FFFFFF; --line:rgba(255,255,255,.15);
+    --glass:rgba(245,242,235,.05); --glass-brd:rgba(107,122,58,.4);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ivoire);font-family:'Poppins',sans-serif;font-weight:300;min-height:100vh;}
+  h1,h2,.serif{font-family:'Cormorant Garamond',serif;font-weight:600;}
+
+  /* ---------- LOGIN ---------- */
+  #login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+  .login-box{max-width:360px;width:100%;background:var(--glass);border:1px solid var(--glass-brd);border-radius:18px;padding:36px 28px;text-align:center;}
+  .login-box h1{font-size:26px;margin-bottom:6px;}
+  .login-box p{font-size:13px;color:rgba(255,255,255,.6);margin-bottom:24px;}
+  .login-box input{width:100%;padding:13px 14px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:#fff;font-size:15px;margin-bottom:14px;}
+  .login-box button{width:100%;padding:13px;border:0;border-radius:10px;background:var(--olive);color:#fff;font-size:14px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;}
+  .login-box button:disabled{opacity:.6;}
+  .login-error{color:#e88;font-size:12.5px;margin:-6px 0 14px;display:none;}
+  .login-error.show{display:block;}
+
+  /* ---------- ADMIN SHELL ---------- */
+  #admin-shell{display:none;max-width:1000px;margin:0 auto;padding:28px 20px 60px;}
+  #admin-shell.show{display:block;}
+  .top-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:24px;}
+  .top-row h1{font-size:24px;}
+  .top-row .actions{display:flex;gap:10px;}
+  .btn{padding:9px 16px;border-radius:9px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:#fff;font-size:12.5px;cursor:pointer;letter-spacing:.03em;}
+  .btn.primary{background:var(--olive);border-color:var(--olive);}
+
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:24px;}
+  .stat{background:var(--glass);border:1px solid var(--glass-brd);border-radius:14px;padding:16px;text-align:center;}
+  .stat .n{font-size:26px;font-family:'Cormorant Garamond',serif;font-weight:600;}
+  .stat .l{font-size:11px;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;}
+
+  .filters{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+  .filters button{padding:7px 14px;border-radius:20px;border:1px solid var(--line);background:transparent;color:rgba(255,255,255,.75);font-size:12px;cursor:pointer;}
+  .filters button.active{background:var(--olive);border-color:var(--olive);color:#fff;}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);}
+  th{color:rgba(255,255,255,.55);font-weight:400;text-transform:uppercase;font-size:10.5px;letter-spacing:.05em;}
+  tr:hover td{background:rgba(255,255,255,.03);}
+  .badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;}
+  .badge.oui{background:rgba(107,122,58,.35);color:#cfe0a6;}
+  .badge.non{background:rgba(181,80,47,.3);color:#f3b79f;}
+  .table-wrap{overflow-x:auto;background:var(--glass);border:1px solid var(--glass-brd);border-radius:14px;}
+  #loadingState,#emptyState{padding:40px 10px;text-align:center;color:rgba(255,255,255,.55);font-size:13.5px;}
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-box">
+    <h1>Espace admin</h1>
+    <p>Grace &amp; Benjamin — accès réservé</p>
+    <form id="loginForm" autocomplete="off">
+      <input type="password" id="pwd" placeholder="Mot de passe" required>
+      <div class="login-error" id="loginError">Mot de passe incorrect.</div>
+      <button type="submit" id="loginBtn">Entrer</button>
+    </form>
+  </div>
+</div>
+
+<div id="admin-shell">
+  <div class="top-row">
+    <h1>Réponses RSVP</h1>
+    <div class="actions">
+      <button class="btn" id="exportBtn">Exporter CSV</button>
+      <button class="btn" id="refreshBtn">Actualiser</button>
+      <button class="btn primary" id="logoutBtn">Déconnexion</button>
+    </div>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="filters">
+    <button class="active" data-f="tous">Tous</button>
+    <button data-f="oui">Présents</button>
+    <button data-f="non">Absents</button>
+  </div>
+
+  <div class="table-wrap">
+    <div id="loadingState">Chargement…</div>
+    <div id="emptyState" style="display:none;">Aucune réponse pour l'instant.</div>
+    <table id="rsvpTable" style="display:none;">
+      <thead>
+        <tr>
+          <th>Date</th><th>Nom</th><th>Prénom</th><th>Téléphone</th>
+          <th>Marié(e)</th><th>Époux/épouse</th><th>Présence</th><th>Message</th>
+        </tr>
+      </thead>
+      <tbody id="rsvpBody"></tbody>
+    </table>
+  </div>
+
+  <p style="margin-top:18px;font-size:12px;color:rgba(255,255,255,.4);">
+    Les données sont lues directement depuis votre serveur (data.json) — pas de Firebase, pas de Google Sheet.
+    Cliquez sur « Actualiser » pour voir les toutes dernières réponses.
+  </p>
+</div>
+
+<script>
+let allRows = [];
+let currentFilter = 'tous';
+
+const loginScreen = document.getElementById('login-screen');
+const adminShell = document.getElementById('admin-shell');
+const loginForm = document.getElementById('loginForm');
+const loginError = document.getElementById('loginError');
+const loginBtn = document.getElementById('loginBtn');
+const loadingState = document.getElementById('loadingState');
+const emptyState = document.getElementById('emptyState');
+const table = document.getElementById('rsvpTable');
+
+function showAdmin(){
+  loginScreen.style.display = 'none';
+  adminShell.classList.add('show');
+  loadData();
+}
+
+const savedKey = sessionStorage.getItem('gb_admin_key');
+if(savedKey){ showAdmin(); }
+
+loginForm.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const pwd = document.getElementById('pwd').value;
+  loginBtn.disabled = true;
+  loginBtn.textContent = 'Connexion…';
+  try{
+    const res = await fetch('/api/rsvps?key=' + encodeURIComponent(pwd));
+    if(res.status === 401){
+      loginError.classList.add('show');
+    } else {
+      sessionStorage.setItem('gb_admin_key', pwd);
+      loginError.classList.remove('show');
+      showAdmin();
+    }
+  } catch(err){
+    loginError.textContent = 'Impossible de contacter le serveur.';
+    loginError.classList.add('show');
+  }
+  loginBtn.disabled = false;
+  loginBtn.textContent = 'Entrer';
+});
+
+document.getElementById('logoutBtn').addEventListener('click', ()=>{
+  sessionStorage.removeItem('gb_admin_key');
+  location.reload();
+});
+
+async function loadData(){
+  loadingState.style.display = 'block';
+  table.style.display = 'none';
+  emptyState.style.display = 'none';
+  const key = sessionStorage.getItem('gb_admin_key') || '';
+  try{
+    const res = await fetch('/api/rsvps?key=' + encodeURIComponent(key));
+    if(res.status === 401){
+      sessionStorage.removeItem('gb_admin_key');
+      location.reload();
+      return;
+    }
+    allRows = await res.json();
+    renderStats();
+    renderTable();
+  } catch(err){
+    loadingState.textContent = "Impossible de charger les réponses. Vérifiez que le serveur tourne bien (node server.js).";
+  }
+}
+document.getElementById('refreshBtn').addEventListener('click', loadData);
+
+function renderStats(){
+  const total = allRows.length;
+  const presents = allRows.filter(r => r.presence === 'Oui').length;
+  const absents = total - presents;
+  const marries = allRows.filter(r => r.marie === 'Oui').length;
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><div class="n">${total}</div><div class="l">Réponses</div></div>
+    <div class="stat"><div class="n">${presents}</div><div class="l">Présents</div></div>
+    <div class="stat"><div class="n">${absents}</div><div class="l">Absents</div></div>
+    <div class="stat"><div class="n">${marries}</div><div class="l">Avec conjoint</div></div>
+  `;
+}
+
+document.querySelectorAll('.filters button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.filters button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.f;
+    renderTable();
+  });
+});
+
+function renderTable(){
+  let rows = allRows;
+  if(currentFilter === 'oui') rows = rows.filter(r=>r.presence==='Oui');
+  if(currentFilter === 'non') rows = rows.filter(r=>r.presence==='Non');
+
+  loadingState.style.display = 'none';
+  if(rows.length === 0){
+    table.style.display = 'none';
+    emptyState.style.display = 'block';
+    return;
+  }
+  emptyState.style.display = 'none';
+  table.style.display = 'table';
+
+  document.getElementById('rsvpBody').innerHTML = rows.map(r => {
+    const date = r.horodatage ? new Date(r.horodatage).toLocaleString('fr-FR') : '';
+    const badge = r.presence === 'Oui' ? '<span class="badge oui">Oui</span>' : '<span class="badge non">Non</span>';
+    return `<tr>
+      <td>${date}</td>
+      <td>${escapeHtml(r.nom)}</td>
+      <td>${escapeHtml(r.prenom)}</td>
+      <td>${escapeHtml(r.telephone)}</td>
+      <td>${r.marie === 'Oui' ? 'Oui' : 'Non'}</td>
+      <td>${escapeHtml(r.nom_epoux || '')}</td>
+      <td>${badge}</td>
+      <td>${escapeHtml(r.message || '')}</td>
+    </tr>`;
+  }).join('');
+}
+
+function escapeHtml(s){
+  return (s || '').toString()
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  const header = ['Date','Nom','Prénom','Téléphone','Marié(e)','Époux/épouse','Présence','Message'];
+  const lines = [header.join(';')];
+  allRows.forEach(r=>{
+    const date = r.horodatage ? new Date(r.horodatage).toLocaleString('fr-FR') : '';
+    lines.push([date, r.nom, r.prenom, r.telephone, r.marie, r.nom_epoux||'', r.presence, (r.message||'').replace(/;/g,',')].join(';'));
+  });
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'rsvp-grace-benjamin.csv';
+  link.click();
+});
+</script>
+</body>
+</html>
