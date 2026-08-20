@@ -83,8 +83,9 @@
 
   <div class="filters">
     <button class="active" data-f="tous">Tous</button>
-    <button data-f="oui">Présents</button>
-    <button data-f="non">Absents</button>
+    <button data-f="dot">Présents à la Dot</button>
+    <button data-f="mariage">Présents au Mariage</button>
+    <button data-f="aucun">Aucune présence confirmée</button>
   </div>
 
   <div class="table-wrap">
@@ -94,7 +95,7 @@
       <thead>
         <tr>
           <th>Date</th><th>Nom</th><th>Prénom</th><th>Téléphone</th>
-          <th>Marié(e)</th><th>Époux/épouse</th><th>Présence</th><th>Message</th>
+          <th>Marié(e)</th><th>Époux/épouse</th><th>Dot</th><th>Mariage</th><th>Message</th>
         </tr>
       </thead>
       <tbody id="rsvpBody"></tbody>
@@ -179,13 +180,13 @@ document.getElementById('refreshBtn').addEventListener('click', loadData);
 
 function renderStats(){
   const total = allRows.length;
-  const presents = allRows.filter(r => r.presence === 'Oui').length;
-  const absents = total - presents;
+  const dotOui = allRows.filter(r => r.presence_dot === 'Oui').length;
+  const mariageOui = allRows.filter(r => r.presence_mariage === 'Oui').length;
   const marries = allRows.filter(r => r.marie === 'Oui').length;
   document.getElementById('stats').innerHTML = `
     <div class="stat"><div class="n">${total}</div><div class="l">Réponses</div></div>
-    <div class="stat"><div class="n">${presents}</div><div class="l">Présents</div></div>
-    <div class="stat"><div class="n">${absents}</div><div class="l">Absents</div></div>
+    <div class="stat"><div class="n">${dotOui}</div><div class="l">Présents à la Dot</div></div>
+    <div class="stat"><div class="n">${mariageOui}</div><div class="l">Présents au Mariage</div></div>
     <div class="stat"><div class="n">${marries}</div><div class="l">Avec conjoint</div></div>
   `;
 }
@@ -201,8 +202,9 @@ document.querySelectorAll('.filters button').forEach(btn=>{
 
 function renderTable(){
   let rows = allRows;
-  if(currentFilter === 'oui') rows = rows.filter(r=>r.presence==='Oui');
-  if(currentFilter === 'non') rows = rows.filter(r=>r.presence==='Non');
+  if(currentFilter === 'dot') rows = rows.filter(r=>r.presence_dot==='Oui');
+  if(currentFilter === 'mariage') rows = rows.filter(r=>r.presence_mariage==='Oui');
+  if(currentFilter === 'aucun') rows = rows.filter(r=>r.presence_dot!=='Oui' && r.presence_mariage!=='Oui');
 
   loadingState.style.display = 'none';
   if(rows.length === 0){
@@ -215,7 +217,8 @@ function renderTable(){
 
   document.getElementById('rsvpBody').innerHTML = rows.map(r => {
     const date = r.horodatage ? new Date(r.horodatage).toLocaleString('fr-FR') : '';
-    const badge = r.presence === 'Oui' ? '<span class="badge oui">Oui</span>' : '<span class="badge non">Non</span>';
+    const badgeDot = r.presence_dot === 'Oui' ? '<span class="badge oui">Oui</span>' : '<span class="badge non">Non</span>';
+    const badgeMariage = r.presence_mariage === 'Oui' ? '<span class="badge oui">Oui</span>' : '<span class="badge non">Non</span>';
     return `<tr>
       <td>${date}</td>
       <td>${escapeHtml(r.nom)}</td>
@@ -223,7 +226,8 @@ function renderTable(){
       <td>${escapeHtml(r.telephone)}</td>
       <td>${r.marie === 'Oui' ? 'Oui' : 'Non'}</td>
       <td>${escapeHtml(r.nom_epoux || '')}</td>
-      <td>${badge}</td>
+      <td>${badgeDot}</td>
+      <td>${badgeMariage}</td>
       <td>${escapeHtml(r.message || '')}</td>
     </tr>`;
   }).join('');
@@ -235,11 +239,11 @@ function escapeHtml(s){
 }
 
 document.getElementById('exportBtn').addEventListener('click', ()=>{
-  const header = ['Date','Nom','Prénom','Téléphone','Marié(e)','Époux/épouse','Présence','Message'];
+  const header = ['Date','Nom','Prénom','Téléphone','Marié(e)','Époux/épouse','Présent Dot','Présent Mariage','Message'];
   const lines = [header.join(';')];
   allRows.forEach(r=>{
     const date = r.horodatage ? new Date(r.horodatage).toLocaleString('fr-FR') : '';
-    lines.push([date, r.nom, r.prenom, r.telephone, r.marie, r.nom_epoux||'', r.presence, (r.message||'').replace(/;/g,',')].join(';'));
+    lines.push([date, r.nom, r.prenom, r.telephone, r.marie, r.nom_epoux||'', r.presence_dot, r.presence_mariage, (r.message||'').replace(/;/g,',')].join(';'));
   });
   const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');

@@ -79,7 +79,8 @@ const server = http.createServer((req, res) => {
           telephone: (data.telephone || '').toString().slice(0, 50),
           marie: data.marie === 'Oui' ? 'Oui' : 'Non',
           nom_epoux: (data.nom_epoux || '').toString().slice(0, 200),
-          presence: data.presence === 'Non' ? 'Non' : 'Oui',
+          presence_dot: data.presence_dot === 'Oui' ? 'Oui' : 'Non',
+          presence_mariage: data.presence_mariage === 'Oui' ? 'Oui' : 'Non',
           message: (data.message || '').toString().slice(0, 2000)
         });
         writeData(rows);
